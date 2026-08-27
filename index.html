@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>러닝 계산기</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root{
+    --bg:#f5f5f7;
+    --card:#ffffff;
+    --text:#1d1d1f;
+    --sub:#86868b;
+    --accent:#0071e3;
+    --line:#e5e5ea;
+    --ink:#1d1d1f;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    height:100%;
+    margin:0;
+    overscroll-behavior:none;
+  }
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing:-0.02em;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    height:100dvh;
+    padding:clamp(16px, 4vh, 30px) clamp(16px, 5vw, 24px);
+    overflow:hidden;
+    position:relative;
+  }
+  .bg-layer{
+    position:fixed;
+    inset:0;
+    z-index:-1;
+    overflow:hidden;
+    background:var(--bg);
+  }
+  .bg-layer .blob{
+    position:absolute;
+    width:75vmax;
+    height:75vmax;
+    border-radius:50%;
+    filter:blur(70px);
+    opacity:0.55;
+    will-change:transform;
+  }
+  .bg-layer .blob-a{
+    top:-25%;
+    left:-20%;
+    background:var(--grad-a, #FFE8FE);
+    animation:floatA 8s ease-in-out infinite alternate;
+  }
+  .bg-layer .blob-b{
+    bottom:-25%;
+    right:-20%;
+    background:var(--grad-b, #DAD6FF);
+    animation:floatB 9.5s ease-in-out infinite alternate;
+  }
+  @keyframes floatA{
+    0%{transform:translate(0,0) scale(1);}
+    100%{transform:translate(16%,14%) scale(1.12);}
+  }
+  @keyframes floatB{
+    0%{transform:translate(0,0) scale(1);}
+    100%{transform:translate(-15%,-16%) scale(1.08);}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .bg-layer .blob{ animation:none; }
+  }
+  .wrap{
+    width:100%;
+    max-width:460px;
+    display:flex;
+    flex-direction:column;
+    gap:clamp(14px, 2.6vh, 22px);
+  }
+  h1{
+    font-size:clamp(19px, 3.2vh, 25px);
+    font-weight:700;
+    text-align:center;
+    margin:0 0 clamp(2px, 0.6vh, 6px) 0;
+    letter-spacing:-0.02em;
+  }
+  .card{
+    background:rgba(255,255,255,0.45);
+    -webkit-backdrop-filter:blur(22px) saturate(160%);
+    backdrop-filter:blur(22px) saturate(160%);
+    border:1px solid rgba(255,255,255,0.6);
+    border-radius:20px;
+    padding:clamp(18px, 3.4vh, 28px) clamp(18px, 4.5vw, 26px);
+    box-shadow:
+      0 2px 4px rgba(31,38,135,0.06),
+      0 12px 24px rgba(31,38,135,0.10),
+      0 28px 48px rgba(31,38,135,0.12),
+      inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+  .card-title{
+    font-size:clamp(11px, 1.7vh, 13px);
+    font-weight:600;
+    color:var(--sub);
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    margin-bottom:clamp(10px, 2vh, 16px);
+  }
+  .row{
+    display:flex;
+    align-items:center;
+    gap:clamp(10px, 2.2vw, 16px);
+    margin-bottom:clamp(9px, 1.8vh, 14px);
+  }
+  .row:last-child{margin-bottom:0;}
+  .label{
+    width:60px;
+    flex-shrink:0;
+    font-size:clamp(13px, 1.9vh, 15px);
+    color:var(--sub);
+    font-weight:500;
+  }
+  .field-group{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    flex:1;
+  }
+  input[type=number]{
+    -moz-appearance:textfield;
+    appearance:none;
+    width:100%;
+    min-width:0;
+    background:#ffffff;
+    border:1px solid rgba(0,0,0,0.04);
+    border-radius:10px;
+    padding:clamp(9px, 1.7vh, 13px) clamp(9px, 1.8vw, 12px);
+    font-size:clamp(15px, 2.1vh, 17px);
+    font-family:inherit;
+    letter-spacing:-0.02em;
+    color:var(--text);
+    text-align:right;
+    box-shadow:0 1px 2px rgba(0,0,0,0.04);
+    transition:border-color .15s, box-shadow .15s;
+  }
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button{
+    -webkit-appearance:none;
+    margin:0;
+  }
+  input[type=number]:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(0,113,227,0.12);
+  }
+  input.derived{
+    color:var(--accent);
+    font-weight:600;
+  }
+  .unit{
+    flex-shrink:0;
+    width:40px;
+    font-size:clamp(12px, 1.7vh, 14px);
+    color:var(--sub);
+    text-align:left;
+    align-self:flex-end;
+    padding-bottom:clamp(9px, 1.7vh, 13px);
+    white-space:nowrap;
+  }
+  .sep{
+    font-size:clamp(13px, 1.8vh, 15px);
+    color:var(--sub);
+  }
+  .reset-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    width:100%;
+    background:var(--ink);
+    color:#ffffff;
+    font-size:clamp(14px, 1.9vh, 16px);
+    font-weight:600;
+    letter-spacing:-0.01em;
+    border:none;
+    border-radius:999px;
+    padding:clamp(13px, 2.4vh, 18px) clamp(20px, 5vw, 32px);
+    cursor:pointer;
+    user-select:none;
+    transition:transform .15s ease, opacity .15s ease;
+  }
+  .reset-btn:active{
+    transform:scale(0.97);
+    opacity:0.9;
+  }
+  .reset-btn svg{
+    width:17px;
+    height:17px;
+    flex-shrink:0;
+    transition:transform .5s ease;
+  }
+  .reset-btn.spin svg{
+    transform:rotate(-360deg);
+  }
+</style>
+</head>
+<body>
+<div class="bg-layer" id="bgLayer">
+  <div class="blob blob-a" id="blobA"></div>
+  <div class="blob blob-b" id="blobB"></div>
+</div>
+<div class="wrap">
+  <h1>러닝 계산기</h1>
+
+  <div class="card">
+    <div class="card-title">거리 &amp; 시간</div>
+    <div class="row">
+      <div class="label">거리</div>
+      <div class="field-group">
+        <input type="number" id="distance" inputmode="decimal" step="0.01" placeholder="0">
+      </div>
+      <div class="unit">km</div>
+    </div>
+    <div class="row">
+      <div class="label">시간</div>
+      <div class="field-group">
+        <input type="number" id="timeMin" inputmode="numeric" step="1" placeholder="0">
+        <div class="sep">분</div>
+        <input type="number" id="timeSec" inputmode="numeric" step="1" placeholder="0">
+      </div>
+      <div class="unit">초</div>
+    </div>
+    <div class="row">
+      <div class="label">페이스</div>
+      <div class="field-group">
+        <input type="number" id="paceMin" inputmode="numeric" step="1" placeholder="0">
+        <div class="sep">분</div>
+        <input type="number" id="paceSec" inputmode="numeric" step="1" placeholder="0">
+      </div>
+      <div class="unit">초</div>
+    </div>
+    <div class="row">
+      <div class="label">속도</div>
+      <div class="field-group">
+        <input type="number" id="speed" inputmode="decimal" step="0.1" placeholder="0">
+      </div>
+      <div class="unit">km/h</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">케이던스 &amp; 보폭</div>
+    <div class="row">
+      <div class="label">케이던스</div>
+      <div class="field-group">
+        <input type="number" id="cadence" inputmode="numeric" step="1" placeholder="0">
+      </div>
+      <div class="unit">spm</div>
+    </div>
+    <div class="row">
+      <div class="label">발자국</div>
+      <div class="field-group">
+        <input type="number" id="steps" inputmode="numeric" step="1" placeholder="0">
+      </div>
+      <div class="unit">보</div>
+    </div>
+    <div class="row">
+      <div class="label">보폭</div>
+      <div class="field-group">
+        <input type="number" id="stride" inputmode="decimal" step="0.1" placeholder="0">
+      </div>
+      <div class="unit">cm</div>
+    </div>
+  </div>
+
+  <button class="reset-btn" id="resetBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12a9 9 0 1 1-2.64-6.36"></path>
+      <polyline points="21 3 21 9 15 9"></polyline>
+    </svg>
+    <span>전체 초기화</span>
+  </button>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+
+  const distanceEl = $('distance');
+  const timeMinEl = $('timeMin');
+  const timeSecEl = $('timeSec');
+  const paceMinEl = $('paceMin');
+  const paceSecEl = $('paceSec');
+  const speedEl = $('speed');
+  const cadenceEl = $('cadence');
+  const stepsEl = $('steps');
+  const strideEl = $('stride');
+
+  const allInputs = [distanceEl,timeMinEl,timeSecEl,paceMinEl,paceSecEl,speedEl,cadenceEl,stepsEl,strideEl];
+
+  // 은은한 배경용 파스텔 그라디언트 10종
+  const gradients = [
+    ['#F4F1BB', '#FFDD90'],
+    ['#FFE8FE', '#DAD6FF'],
+    ['#BED8FF', '#E5F6FF'],
+    ['#F8DAC1', '#FDC994'],
+    ['#FCC5D5', '#FFF1E5'],
+    ['#FCE5CF', '#FFD6F7'],
+    ['#E2FDFA', '#F6F3EE'],
+    ['#FFACD6', '#F2E0FF'],
+    ['#D3F6FF', '#FFE6E6'],
+    ['#EFE1DC', '#FFF6E6']
+  ];
+
+  function applyRandomGradient(){
+    const [a, b] = gradients[Math.floor(Math.random() * gradients.length)];
+    document.documentElement.style.setProperty('--grad-a', a);
+    document.documentElement.style.setProperty('--grad-b', b);
+  }
+  applyRandomGradient();
+
+  // group1 anchor order: 'd' | 't' | 'rate'  (max 2 kept)
+  let g1Order = [];
+  // which sub-field of 'rate' was last typed by the user: 'pace' or 'speed'
+  let rateSource = 'pace';
+  // group2 anchor order: 'cadence' | 'steps' | 'stride' (max 2 kept)
+  let g2Order = [];
+
+  function pushAnchor(order, key){
+    order = order.filter(k => k !== key);
+    order.push(key);
+    if(order.length > 2) order.shift();
+    return order;
+  }
+
+  function num(el){
+    if(el.value === '' || el.value === null) return null;
+    const v = parseFloat(el.value);
+    return isNaN(v) ? null : v;
+  }
+
+  function setDerived(el, value, decimals){
+    el.classList.add('derived');
+    if(value === null || value === undefined || isNaN(value)){
+      el.value = '';
+    } else {
+      el.value = (decimals === 0) ? Math.round(value) : parseFloat(value.toFixed(decimals));
+    }
+  }
+
+  function clearDerivedClass(el){
+    el.classList.remove('derived');
+  }
+
+  function compute(){
+    // ---- group 1: distance(d) / time(t) / rate(pace or speed) ----
+    const hasD = g1Order.includes('d');
+    const hasT = g1Order.includes('t');
+    const hasRate = g1Order.includes('rate');
+
+    let d = hasD ? num(distanceEl) : null;
+
+    let tSec = null;
+    if(hasT){
+      const tm = num(timeMinEl), ts = num(timeSecEl);
+      if(tm !== null || ts !== null) tSec = (tm||0)*60 + (ts||0);
+    }
+
+    let paceSec = null, speed = null;
+    if(hasRate){
+      // only trust the sub-field the user actually typed (rateSource);
+      // the other one may still hold a stale derived display value
+      if(rateSource === 'pace'){
+        const pm = num(paceMinEl), ps = num(paceSecEl);
+        if(pm !== null || ps !== null){
+          paceSec = (pm||0)*60 + (ps||0);
+          if(paceSec > 0) speed = 3600/paceSec;
+        }
+      } else {
+        const sp = num(speedEl);
+        if(sp !== null && sp > 0){
+          speed = sp;
+          paceSec = 3600/speed;
+        }
+      }
+    }
+
+    // resolve the missing one of {d, t, rate} from the two known ones
+    if(hasD && hasT && d>0 && tSec>0){
+      paceSec = tSec/d;
+      speed = 3600/paceSec;
+    } else if(hasD && hasRate && d>0 && paceSec>0){
+      tSec = paceSec*d;
+    } else if(hasT && hasRate && tSec>0 && paceSec>0){
+      d = tSec/paceSec;
+    }
+
+    // write back: anchored fields stay untouched (plain style),
+    // non-anchored fields get the derived value (or cleared if unavailable)
+    if(hasD){
+      clearDerivedClass(distanceEl);
+    } else {
+      setDerived(distanceEl, d, 2);
+    }
+
+    if(hasT){
+      clearDerivedClass(timeMinEl);
+      clearDerivedClass(timeSecEl);
+    } else {
+      setDerived(timeMinEl, tSec!==null ? Math.floor(tSec/60) : null, 0);
+      setDerived(timeSecEl, tSec!==null ? Math.round(tSec%60) : null, 0);
+    }
+
+    if(hasRate){
+      clearDerivedClass(paceMinEl); clearDerivedClass(paceSecEl); clearDerivedClass(speedEl);
+      // whichever representation the user did NOT type is kept in sync from the other
+      if(rateSource === 'pace' && speed !== null){
+        speedEl.value = parseFloat(speed.toFixed(1));
+      } else if(rateSource === 'speed' && paceSec !== null){
+        paceMinEl.value = Math.floor(paceSec/60);
+        paceSecEl.value = Math.round(paceSec%60);
+      }
+    } else {
+      setDerived(paceMinEl, paceSec!==null ? Math.floor(paceSec/60) : null, 0);
+      setDerived(paceSecEl, paceSec!==null ? Math.round(paceSec%60) : null, 0);
+      setDerived(speedEl, speed, 1);
+    }
+
+    // ---- group 2: cadence / steps / stride, using d & tSec resolved above ----
+    const gHasC = g2Order.includes('cadence');
+    const gHasS = g2Order.includes('steps');
+    const gHasSt = g2Order.includes('stride');
+
+    let cadence = gHasC ? num(cadenceEl) : null;
+    let steps = gHasS ? num(stepsEl) : null;
+    let stride = gHasSt ? num(strideEl) : null;
+
+    for(let i=0;i<2;i++){
+      if(steps===null && cadence!==null && tSec!==null && tSec>0){
+        steps = cadence * (tSec/60);
+      }
+      if(stride===null && steps!==null && d!==null && steps>0){
+        stride = (d*100000)/steps;
+      }
+      if(steps===null && stride!==null && d!==null && stride>0){
+        steps = (d*100000)/stride;
+      }
+      if(cadence===null && steps!==null && tSec!==null && tSec>0){
+        cadence = steps/(tSec/60);
+      }
+    }
+
+    if(gHasC) clearDerivedClass(cadenceEl); else setDerived(cadenceEl, cadence, 0);
+    if(gHasS) clearDerivedClass(stepsEl); else setDerived(stepsEl, steps, 0);
+    if(gHasSt) clearDerivedClass(strideEl); else setDerived(strideEl, stride, 1);
+  }
+
+  function bindGroup1(el, key, source){
+    el.addEventListener('input', ()=>{
+      clearDerivedClass(el);
+      if(source) rateSource = source;
+      if(el.value === ''){
+        g1Order = g1Order.filter(k => k !== key);
+      } else {
+        g1Order = pushAnchor(g1Order, key);
+      }
+      compute();
+    });
+  }
+  function bindGroup2(el, key){
+    el.addEventListener('input', ()=>{
+      clearDerivedClass(el);
+      if(el.value === ''){
+        g2Order = g2Order.filter(k => k !== key);
+      } else {
+        g2Order = pushAnchor(g2Order, key);
+      }
+      compute();
+    });
+  }
+
+  bindGroup1(distanceEl, 'd');
+  bindGroup1(timeMinEl, 't');
+  bindGroup1(timeSecEl, 't');
+  bindGroup1(paceMinEl, 'rate', 'pace');
+  bindGroup1(paceSecEl, 'rate', 'pace');
+  bindGroup1(speedEl, 'rate', 'speed');
+
+  bindGroup2(cadenceEl, 'cadence');
+  bindGroup2(stepsEl, 'steps');
+  bindGroup2(strideEl, 'stride');
+
+  $('resetBtn').addEventListener('click', ()=>{
+    g1Order = [];
+    g2Order = [];
+    allInputs.forEach(el=>{ el.value=''; clearDerivedClass(el); });
+    applyRandomGradient();
+    const btn = $('resetBtn');
+    btn.classList.remove('spin');
+    void btn.offsetWidth; // 리플로우 강제 -> 애니메이션 재시작
+    btn.classList.add('spin');
+  });
+})();
+</script>
+</body>
+</html>
